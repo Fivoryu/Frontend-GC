@@ -1,0 +1,106 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "CloudFormation template for Condominium Frontend - S3 + CloudFront",
+  "Parameters": {
+    "BucketName": {
+      "Type": "String",
+      "Default": "condominium-frontend",
+      "Description": "Name of the S3 bucket for the frontend"
+    },
+    "DomainName": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Custom domain name (optional)"
+    }
+  },
+  "Resources": {
+    "S3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {"Ref": "BucketName"},
+        "WebsiteConfiguration": {
+          "IndexDocument": "index.html",
+          "ErrorDocument": "index.html"
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": false,
+          "BlockPublicPolicy": false,
+          "IgnorePublicAcls": false,
+          "RestrictPublicBuckets": false
+        }
+      }
+    },
+    "S3BucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {"Ref": "S3Bucket"},
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "PublicReadGetObject",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": {"Fn::Sub": "${S3Bucket}/*"}
+            }
+          ]
+        }
+      }
+    },
+    "CloudFrontDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Origins": [
+            {
+              "DomainName": {"Fn::GetAtt": ["S3Bucket", "RegionalDomainName"]},
+              "Id": "S3Origin",
+              "S3OriginConfig": {
+                "OriginAccessIdentity": ""
+              }
+            }
+          ],
+          "Enabled": true,
+          "DefaultRootObject": "index.html",
+          "DefaultCacheBehavior": {
+            "AllowedMethods": ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"],
+            "TargetOriginId": "S3Origin",
+            "ForwardedValues": {
+              "QueryString": false,
+              "Cookies": {"Forward": "none"}
+            },
+            "ViewerProtocolPolicy": "redirect-to-https"
+          },
+          "CustomErrorResponses": [
+            {
+              "ErrorCode": 404,
+              "ResponseCode": 200,
+              "ResponsePagePath": "/index.html"
+            },
+            {
+              "ErrorCode": 403,
+              "ResponseCode": 200,
+              "ResponsePagePath": "/index.html"
+            }
+          ],
+          "PriceClass": "PriceClass_100"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "BucketName": {
+      "Description": "Name of the S3 bucket",
+      "Value": {"Ref": "S3Bucket"}
+    },
+    "WebsiteURL": {
+      "Description": "URL for website hosted on S3",
+      "Value": {"Fn::GetAtt": ["S3Bucket", "WebsiteURL"]}
+    },
+    "CloudFrontURL": {
+      "Description": "CloudFront Distribution URL",
+      "Value": {"Fn::GetAtt": ["CloudFrontDistribution", "DomainName"]}
+    }
+  }
+}

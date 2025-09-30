@@ -53,3 +53,15 @@ coverage/
 .npm
 .eslintcache
 .stylelintcache
+
+# AWS deployment files
+.aws/
+aws-credentials.txt
+temp-policy.json
+
+# CloudFormation templates (mantener los archivos base)
+# aws-cloudformation.json
+
+# Deployment artifacts
+deployment/
+*.zip
